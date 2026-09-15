@@ -93,10 +93,11 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 - **Definition of done:** before a Vs Computer game starts, the player picks White or Black in a screen styled to match the Figma Make design system (§4); the computer automatically plays the other side and responds after every human move using 2.2/2.3's logic; all of Phase 1's end-state handling (check, checkmate, stalemate, promotion) works identically in this mode.
 - **Status: DONE.** `App.tsx` now has a small mode menu (Hot-Seat / Vs Computer) in front of the board; choosing Vs Computer opens `ColorPicker.tsx` (styled to match Board.tsx/Modal.tsx) before the game starts. After every human move, an effect hands the position to `ai.js`'s `chooseMove()` and applies whatever it returns; the player's own clicks are ignored while it's the computer's turn. This needed one small addition beyond the files listed above: `src/game.ts` gained a `playMove()` function so an already-decided AI move can be applied without faking a square click -- it doesn't decide anything about legality, it just applies a move the same way a click-driven one already was. Check, checkmate, stalemate, and promotion all reuse Phase 1's exact same components and logic, since none of that is mode-specific.
 
-### [ ] 2.5 — Deploy & verify
+### [x] 2.5 — Deploy & verify
 - **Depends on:** 2.4
 - **Files:** none (deployment only)
 - **Definition of done:** Vs Computer mode works on the live Cloudflare URL exactly as it does locally, for both color choices.
+- **Status: DONE.** Verified live on https://chess-plode.aydink.workers.dev via browser automation: picked White, made moves, and the computer replied automatically each time (e.g. 1. e4 c5 2. Nf3 Nc6); picked Black, and the computer immediately played White's first move (1. d4) with no human action needed, then kept replying normally (1...Nf6 2. e4). Also re-checked Hot-Seat mode still works unchanged after these changes. Zero console errors throughout. Phase 2 (Vs Computer) is complete.
 
 ---
 
