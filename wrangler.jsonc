@@ -1,0 +1,20 @@
+// Chess Plode — Cloudflare Workers config.
+//
+// Front-end is React + Vite (see ProductSpec.md §5.4); `dist/` is the
+// build output, not hand-written files. Phase 0-2: static assets only,
+// no server-side Worker code. Phase 3 (online rooms) will add a "main"
+// entry point (worker/room.js), a Durable Object binding, and a
+// run_worker_first rule scoped to the WebSocket path only.
+// See FEATUREROADMAP_workplan.md for the full build order.
+{
+  "name": "chess-plode",
+  "compatibility_date": "2026-09-15",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "dist",
+    "not_found_handling": "single-page-application"
+  },
+  "workers_dev": true
+}

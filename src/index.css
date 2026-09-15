@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Lora', serif;
+  --color-jungle-deep: #0d1f0e;
+  --color-jungle-dark: #1a3a1c;
+  --color-jungle-mid: #2d5a31;
+  --color-jungle-light: #4a8c50;
+  --color-jungle-fog: #6db375;
+  --color-stone-dark: #2c2416;
+  --color-stone-mid: #4a3c28;
+  --color-stone-light: #7a6548;
+  --color-stone-pale: #c4a96e;
+  --color-moss-dark: #1e3320;
+  --color-moss-light: #3d6b42;
+  --color-gold: #c9a227;
+  --color-gold-bright: #f0c040;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-jungle-deep);
+  overflow: hidden;
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-2deg) translateX(0); }
+  50% { transform: rotate(2deg) translateX(4px); }
+}
+
+@keyframes sway-slow {
+  0%, 100% { transform: rotate(-1deg) scale(1); }
+  50% { transform: rotate(1.5deg) scale(1.01); }
+}
+
+@keyframes fog-drift {
+  0% { transform: translateX(-5%) translateY(0); opacity: 0.18; }
+  50% { transform: translateX(5%) translateY(-10px); opacity: 0.28; }
+  100% { transform: translateX(-5%) translateY(0); opacity: 0.18; }
+}
+
+@keyframes dapple {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.22; }
+}
+
+@keyframes piece-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}

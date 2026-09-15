@@ -1,0 +1,11 @@
+{
+  "title": "Chess Plode",
+  "description": "A jungle/explorer-themed browser chess game — hot-seat, vs computer, and online modes.",
+  "language": "en",
+  "robots": {
+    "index": true
+  },
+  "accessibility": {
+    "addBypassLinks": true
+  }
+}
