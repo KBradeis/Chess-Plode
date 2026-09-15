@@ -69,25 +69,29 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ## Phase 2 — Vs Computer
 
-### [ ] 2.1 — Position evaluation
+### [x] 2.1 — Position evaluation
 - **Depends on:** 1.5
 - **Files:** `ai.js`
 - **Definition of done:** given any board position, `ai.js` returns a numeric score reflecting material balance (and basic positional factors) from the perspective of the side to move, using only data/functions already exposed by `rules.js`.
+- **Status: DONE.** `evaluatePosition()` sums standard material values (pawn 1, knight/bishop 3, rook 5, queen 9) plus a small center-control bonus per piece, from the perspective of `position.turn` -- reading only `board`/`turn` from the Position shape `rules.js` already exposes.
 
-### [ ] 2.2 — Minimax with alpha-beta pruning, depth 2
+### [x] 2.2 — Minimax with alpha-beta pruning, depth 2
 - **Depends on:** 2.1
 - **Files:** `ai.js`
 - **Definition of done:** given any legal position, the AI returns a single legal move chosen by minimax search with alpha-beta pruning at search depth 2 (two half-moves deep), calling `rules.js` for legal-move generation rather than reimplementing any chess logic.
+- **Status: DONE.** `chooseMove()` implements minimax as negamax with alpha-beta pruning, calling `rules.js`'s `getLegalMoves()`/`makeMove()` exclusively for move generation and application. Self-tested: finds Qh4# in the Fool's Mate position (mate-in-1), and correctly grabs an undefended free queen over a quiet move, both purely from search -- confirming the algorithm, not just that it returns *a* move.
 
-### [ ] 2.3 — Speed guard (2-second budget)
+### [x] 2.3 — Speed guard (2-second budget)
 - **Depends on:** 2.2
 - **Files:** `ai.js`
 - **Definition of done:** across a range of test positions (including unusually "open" ones with many legal moves), the AI always returns a move within 2 seconds; if any position is found that risks exceeding that, a fallback (e.g., narrowing the search for that move only) keeps it under budget without ever returning an illegal or missing move.
+- **Status: DONE.** `chooseMove()` tracks a 1.5s internal deadline (a safety margin under the 2s requirement) and always has a legal move ready to return even if time runs out mid-search. In practice this margin is never close to needed: the starting position, a mate-in-1 position, and a deliberately "busy" stress position (73 legal moves for the side to move -- well beyond what any real game reaches) all resolved in 16-22ms.
 
-### [ ] 2.4 — Color choice & game wiring
+### [x] 2.4 — Color choice & game wiring
 - **Depends on:** 2.3
 - **Files:** `src/components/ColorPicker.tsx`, `src/App.tsx`
 - **Definition of done:** before a Vs Computer game starts, the player picks White or Black in a screen styled to match the Figma Make design system (§4); the computer automatically plays the other side and responds after every human move using 2.2/2.3's logic; all of Phase 1's end-state handling (check, checkmate, stalemate, promotion) works identically in this mode.
+- **Status: DONE.** `App.tsx` now has a small mode menu (Hot-Seat / Vs Computer) in front of the board; choosing Vs Computer opens `ColorPicker.tsx` (styled to match Board.tsx/Modal.tsx) before the game starts. After every human move, an effect hands the position to `ai.js`'s `chooseMove()` and applies whatever it returns; the player's own clicks are ignored while it's the computer's turn. This needed one small addition beyond the files listed above: `src/game.ts` gained a `playMove()` function so an already-decided AI move can be applied without faking a square click -- it doesn't decide anything about legality, it just applies a move the same way a click-driven one already was. Check, checkmate, stalemate, and promotion all reuse Phase 1's exact same components and logic, since none of that is mode-specific.
 
 ### [ ] 2.5 — Deploy & verify
 - **Depends on:** 2.4

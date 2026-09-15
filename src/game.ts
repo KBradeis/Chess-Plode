@@ -121,6 +121,10 @@ export interface ChessGame {
   choosePromotion: (piece: PromotionPiece) => void;
   cancelPromotion: () => void;
   resetGame: () => void;
+  // Applies an already fully-decided move (e.g. one ai.js chose) without
+  // going through the click-to-select flow. Used by Vs Computer (2.4) --
+  // the AI never "clicks" a square, it hands over a finished Move.
+  playMove: (move: Move) => void;
 }
 
 export function useChessGame(): ChessGame {
@@ -195,6 +199,11 @@ export function useChessGame(): ChessGame {
     setPendingPromotion(null);
   }
 
+  function playMove(move: Move) {
+    if (status !== "ongoing" || pendingPromotion) return;
+    applyMove(move);
+  }
+
   return {
     position,
     status,
@@ -207,5 +216,6 @@ export function useChessGame(): ChessGame {
     choosePromotion,
     cancelPromotion,
     resetGame,
+    playMove,
   };
 }

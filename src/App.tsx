@@ -1,8 +1,14 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import Board from "./components/Board";
+import ColorPicker from "./components/ColorPicker";
 import { PromotionModal, GameOverModal } from "./components/Modal";
 import { useChessGame, COLOR_NAMES } from "./game";
+import type { Color, Square } from "./game";
+import { chooseMove } from "../ai.js";
+
+type Mode = "hot-seat" | "vs-computer";
+type Screen = "menu" | "color-picker" | "game";
 
 function Leaf({ style, className }: { style?: CSSProperties; className?: string }) {
   return (
@@ -72,19 +78,97 @@ function VineDecor({ className, style }: { className?: string; style?: CSSProper
   );
 }
 
+function MenuButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="cursor-pointer transition-transform hover:scale-105"
+      style={{
+        background: "linear-gradient(135deg, #e8c840 0%, #c9a227 100%)",
+        color: "#2c1f0a",
+        borderRadius: "4px",
+        padding: "12px 32px",
+        fontFamily: "Cinzel, serif",
+        fontSize: "13px",
+        letterSpacing: "0.15em",
+        textTransform: "uppercase",
+        border: "none",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function App() {
+  const [screen, setScreen] = useState<Screen>("menu");
+  const [mode, setMode] = useState<Mode>("hot-seat");
+  const [playerColor, setPlayerColor] = useState<Color>("w");
+
   const game = useChessGame();
+
+  // Vs Computer: whenever it's the computer's turn, let it think for a
+  // brief, deliberate beat (so "Computer is thinking..." is visible rather
+  // than the move just snapping into place) and then play ai.js's choice.
+  // The cleanup here matters: if the player hits New Game or Change Mode
+  // while this timer is pending, it's cancelled instead of later applying
+  // a move calculated for a position that no longer exists.
+  useEffect(() => {
+    if (screen !== "game" || mode !== "vs-computer") return;
+    if (game.status !== "ongoing" || game.pendingPromotion) return;
+    if (game.turn === playerColor) return;
+
+    const timer = setTimeout(() => {
+      const move = chooseMove(game.position);
+      if (move) game.playMove(move);
+    }, 400);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, mode, game.status, game.pendingPromotion, game.turn, game.position, playerColor]);
+
+  const isComputerThinking = mode === "vs-computer" && game.status === "ongoing" && game.turn !== playerColor;
 
   const winner = game.status === "checkmate" ? (game.turn === "w" ? "b" : "w") : null;
 
   const statusText = useMemo(() => {
+    if (isComputerThinking) return "Computer is thinking…";
     if (game.status === "checkmate" && winner) return `Checkmate — ${COLOR_NAMES[winner]} wins`;
     if (game.status === "stalemate") return "Stalemate — draw";
     if (game.inCheck) return `${COLOR_NAMES[game.turn]} is in check`;
     return `${COLOR_NAMES[game.turn]} to move`;
-  }, [game.status, game.turn, game.inCheck, winner]);
+  }, [isComputerThinking, game.status, game.turn, game.inCheck, winner]);
 
   const statusIsUrgent = game.inCheck || game.status !== "ongoing";
+
+  function handleSquareClick(sq: Square) {
+    // In Vs Computer, ignore clicks while it's the computer's move -- the
+    // player can't act on the computer's behalf.
+    if (mode === "vs-computer" && game.turn !== playerColor) return;
+    game.selectSquare(sq);
+  }
+
+  function startHotSeat() {
+    setMode("hot-seat");
+    game.resetGame();
+    setScreen("game");
+  }
+
+  function startVsComputer() {
+    setMode("vs-computer");
+    setScreen("color-picker");
+  }
+
+  function handleColorChosen(color: Color) {
+    setPlayerColor(color);
+    game.resetGame();
+    setScreen("game");
+  }
+
+  function backToMenu() {
+    game.resetGame();
+    setScreen("menu");
+  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden flex items-center justify-center"
@@ -154,58 +238,98 @@ export default function App() {
       {/* Ground mist */}
       <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none" style={{ height: "25%", animation: "fog-drift 16s ease-in-out infinite", background: "linear-gradient(180deg, transparent 0%, rgba(30,80,35,0.15) 60%, rgba(13,40,14,0.35) 100%)" }} />
 
-      {/* Chess board area */}
+      {/* Main content area — swaps between the mode menu, the color picker, and the board */}
       <div className="relative z-20 flex flex-col items-center gap-4">
-        {/* Board title */}
-        <div className="text-center mb-1">
-          <h1
-            className="text-2xl font-semibold uppercase"
-            style={{ color: "#c9a227", textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 0 30px rgba(201,162,39,0.3)", fontFamily: "Cinzel, serif", letterSpacing: "0.2em" }}>
-            Jungle Chess
-          </h1>
-          <p className="text-xs mt-1" style={{ color: "rgba(196,169,110,0.6)", fontFamily: "Lora, serif", letterSpacing: "0.1em" }}>
-            Deep in the canopy, the game begins
-          </p>
-        </div>
+        {screen === "menu" && (
+          <div className="flex flex-col items-center gap-8">
+            <div className="text-center mb-1">
+              <h1
+                className="text-3xl font-semibold uppercase"
+                style={{ color: "#c9a227", textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 0 30px rgba(201,162,39,0.3)", fontFamily: "Cinzel, serif", letterSpacing: "0.2em" }}>
+                Jungle Chess
+              </h1>
+              <p className="text-xs mt-2" style={{ color: "rgba(196,169,110,0.6)", fontFamily: "Lora, serif", letterSpacing: "0.1em" }}>
+                Deep in the canopy, the game begins
+              </p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <MenuButton label="Hot-Seat" onClick={startHotSeat} />
+              <MenuButton label="Vs Computer" onClick={startVsComputer} />
+            </div>
+          </div>
+        )}
 
-        <Board
-          board={game.position.board}
-          selected={game.selected}
-          legalDestinations={game.legalDestinations}
-          turn={game.turn}
-          inCheck={game.inCheck}
-          onSquareClick={game.selectSquare}
-        />
+        {screen === "color-picker" && <ColorPicker onChoose={handleColorChosen} />}
 
-        {/* Status bar */}
-        <div className="flex items-center gap-4 h-6">
-          <p style={{
-            color: statusIsUrgent ? "#e8734a" : "rgba(201,162,39,0.8)",
-            fontFamily: "Lora, serif",
-            fontStyle: "italic",
-            fontSize: "13px",
-            textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-          }}>
-            {statusText}
-          </p>
-          <button
-            onClick={game.resetGame}
-            className="cursor-pointer transition-transform hover:scale-105"
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(201,162,39,0.6)",
-              color: "rgba(201,162,39,0.9)",
-              borderRadius: "3px",
-              padding: "2px 10px",
-              fontFamily: "Cinzel, serif",
-              fontSize: "10px",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-            }}
-          >
-            New Game
-          </button>
-        </div>
+        {screen === "game" && (
+          <>
+            {/* Board title */}
+            <div className="text-center mb-1">
+              <h1
+                className="text-2xl font-semibold uppercase"
+                style={{ color: "#c9a227", textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 0 30px rgba(201,162,39,0.3)", fontFamily: "Cinzel, serif", letterSpacing: "0.2em" }}>
+                Jungle Chess
+              </h1>
+              <p className="text-xs mt-1" style={{ color: "rgba(196,169,110,0.6)", fontFamily: "Lora, serif", letterSpacing: "0.1em" }}>
+                {mode === "vs-computer" ? `You are playing ${COLOR_NAMES[playerColor]}` : "Deep in the canopy, the game begins"}
+              </p>
+            </div>
+
+            <Board
+              board={game.position.board}
+              selected={game.selected}
+              legalDestinations={game.legalDestinations}
+              turn={game.turn}
+              inCheck={game.inCheck}
+              onSquareClick={handleSquareClick}
+            />
+
+            {/* Status bar */}
+            <div className="flex items-center gap-4 h-6">
+              <p style={{
+                color: statusIsUrgent ? "#e8734a" : "rgba(201,162,39,0.8)",
+                fontFamily: "Lora, serif",
+                fontStyle: "italic",
+                fontSize: "13px",
+                textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+              }}>
+                {statusText}
+              </p>
+              <button
+                onClick={game.resetGame}
+                className="cursor-pointer transition-transform hover:scale-105"
+                style={{
+                  background: "transparent",
+                  border: "1px solid rgba(201,162,39,0.6)",
+                  color: "rgba(201,162,39,0.9)",
+                  borderRadius: "3px",
+                  padding: "2px 10px",
+                  fontFamily: "Cinzel, serif",
+                  fontSize: "10px",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                }}
+              >
+                New Game
+              </button>
+              <button
+                onClick={backToMenu}
+                className="cursor-pointer transition-transform hover:scale-105"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "rgba(196,169,110,0.6)",
+                  fontFamily: "Lora, serif",
+                  fontStyle: "italic",
+                  fontSize: "11px",
+                  textDecoration: "underline",
+                }}
+              >
+                Change Mode
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Foreground large leaves — over board edges */}
@@ -239,7 +363,7 @@ export default function App() {
         ))}
       </div>
 
-      {game.pendingPromotion && (
+      {screen === "game" && game.pendingPromotion && (
         <PromotionModal
           pending={game.pendingPromotion}
           onChoose={game.choosePromotion}
@@ -247,7 +371,7 @@ export default function App() {
         />
       )}
 
-      {game.status !== "ongoing" && (
+      {screen === "game" && game.status !== "ongoing" && (
         <GameOverModal status={game.status} winner={winner} onNewGame={game.resetGame} />
       )}
     </div>
