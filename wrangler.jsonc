@@ -1,0 +1,18 @@
+// Chess Plode — Cloudflare Workers config.
+//
+// Phase 0: static assets only — there is no server-side Worker code
+// yet, so this config has no "main" entry point. Phase 3 (online
+// rooms) will add one, plus a Durable Object binding and a
+// run_worker_first rule scoped to the WebSocket path only.
+// See FEATUREROADMAP_workplan.md for the full build order.
+{
+  "name": "chess-plode",
+  "compatibility_date": "2026-09-15",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "single-page-application"
+  }
+}

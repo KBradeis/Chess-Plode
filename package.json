@@ -1,0 +1,13 @@
+{
+  "name": "chess-plode",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Jungle-themed browser chess — hot-seat, vs computer, and online modes — on Cloudflare Workers.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
