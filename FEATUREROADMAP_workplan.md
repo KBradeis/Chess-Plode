@@ -12,12 +12,12 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ## Phase 0 — Foundations (blocks every other phase)
 
-### [ ] 0.1 — Project scaffold
+### [x] 0.1 — Project scaffold
 - **Depends on:** nothing (first task)
 - **Files:** `wrangler.jsonc`, `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/index.css`, `.figma/make/site.json`, `.gitignore`
 - **Definition of done:** `npm run dev` runs the Vite dev server locally and shows the Figma Make-generated jungle chessboard (adopted as-is at this stage — no wiring to real game state yet); `npm run build` produces a `dist/` folder; `wrangler.jsonc` has `compatibility_date` set to the day this task is done, `observability` enabled, and the `assets` config pointing at `dist/` with `not_found_handling: "single-page-application"`.
 - **Note:** this project's front-end is React 19 + TypeScript + Tailwind CSS v4 via Vite 8, generated first by Figma Make (see `ProductSpec.md` §4–§5.4) — a deliberate change from the original plain-HTML plan. `rules.js` and the Durable Object logic are unaffected: still hand-written, framework-free JavaScript.
-- **Status:** files are in place (adopted from https://www.figma.com/make/0re1s60xkWPN11Ezwek4RX). Not yet verified: `npm run dev`/`npm run build` couldn't be run in this environment — installing packages from the npm registry is blocked here. Please run `npm install && npm run dev` yourself to confirm it actually starts and shows the board before we check this box as done.
+- **Status: DONE.** `npm install` succeeded, `npm run deploy:cf` (`vite build && wrangler deploy`) built and published it — live at **https://chess-plode.aydink.workers.dev** on 2026-09-15. Shows the Figma Make jungle chessboard; no real moves yet (that's 1.1).
 
 ### [ ] 0.2 — Rules engine: move generation
 - **Depends on:** 0.1
