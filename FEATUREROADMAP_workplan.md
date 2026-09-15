@@ -4,6 +4,8 @@ Every feature below is a checkbox task. Each one lists what it **depends on** (m
 
 Build order, top to bottom: the rules engine and its test (nothing else can safely start before this), then hot-seat working and live on the internet, then the computer opponent, then online rooms, then the one optional extra. This matches the priority set for this project.
 
+**Project layout** (set up in 0.1): `rules.js` and `ai.js` live at the project root — the one place every part of the app imports them from, client and server alike. `src/` is the Vite/React front-end (components, styles, the app shell) — this is where the Figma Make-generated board lives and where every other screen gets built to match it. `worker/` is the server-side Durable Object code for online rooms (Phase 3) — kept separate from `src/` on purpose, since it runs on Cloudflare's servers, not in the browser, and Vite doesn't need to bundle it.
+
 When you tell me which task to start on, I'll create a branch for it, do the work, commit, push, and open a pull request against `main` for you to review — never force-pushing, and never skipping the perft test in Phase 0.
 
 ---
@@ -12,8 +14,10 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ### [ ] 0.1 — Project scaffold
 - **Depends on:** nothing (first task)
-- **Files:** `wrangler.jsonc`, `package.json`, `public/index.html`, `.gitignore`
-- **Definition of done:** `wrangler dev` runs the project locally and serves a blank page at `localhost`; `wrangler.jsonc` has `compatibility_date` set to the day this task is done, `observability` enabled, and the `assets` config pointing at the `public/` folder with `not_found_handling: "single-page-application"`.
+- **Files:** `wrangler.jsonc`, `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/index.css`, `.figma/make/site.json`, `.gitignore`
+- **Definition of done:** `npm run dev` runs the Vite dev server locally and shows the Figma Make-generated jungle chessboard (adopted as-is at this stage — no wiring to real game state yet); `npm run build` produces a `dist/` folder; `wrangler.jsonc` has `compatibility_date` set to the day this task is done, `observability` enabled, and the `assets` config pointing at `dist/` with `not_found_handling: "single-page-application"`.
+- **Note:** this project's front-end is React 19 + TypeScript + Tailwind CSS v4 via Vite 8, generated first by Figma Make (see `ProductSpec.md` §4–§5.4) — a deliberate change from the original plain-HTML plan. `rules.js` and the Durable Object logic are unaffected: still hand-written, framework-free JavaScript.
+- **Status:** files are in place (adopted from https://www.figma.com/make/0re1s60xkWPN11Ezwek4RX). Not yet verified: `npm run dev`/`npm run build` couldn't be run in this environment — installing packages from the npm registry is blocked here. Please run `npm install && npm run dev` yourself to confirm it actually starts and shows the board before we check this box as done.
 
 ### [ ] 0.2 — Rules engine: move generation
 - **Depends on:** 0.1
@@ -29,25 +33,25 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ## Phase 1 — Hot-Seat, live on the internet
 
-### [ ] 1.1 — Board & piece rendering (jungle theme)
+### [ ] 1.1 — Board & piece rendering (adapt the Figma Make board)
 - **Depends on:** 0.3
-- **Files:** `public/index.html`, `public/styles.css`, `public/board.js`
-- **Definition of done:** an 8x8 board renders in the browser with all 32 pieces in their starting positions, styled per the jungle/explorer look described in `ProductSpec.md` §4 (wood-and-vine board frame, explorer-flavored but still-unambiguous piece silhouettes); clicking/tapping a piece highlights its legal destination squares (from `rules.js`), and clicking a highlighted square moves the piece there.
+- **Files:** `src/App.tsx`, `src/components/Board.tsx`, `src/components/Square.tsx`, `src/index.css`
+- **Definition of done:** the Figma Make-generated board (currently a self-contained visual demo with its own fake `selected`/`hovered` state) is split into real `Board`/`Square` components and wired to actual board data instead of the hardcoded starting position; clicking/tapping a piece highlights its legal destination squares (from `rules.js`), and clicking a highlighted square moves the piece there. Visual style (colors, fonts, decorative foliage) carries over unchanged from the Figma Make source per `ProductSpec.md` §4.
 
 ### [ ] 1.2 — Turn-taking & full move legality
 - **Depends on:** 1.1
-- **Files:** `public/board.js`, `public/game.js`
+- **Files:** `src/App.tsx`, `src/game.ts`
 - **Definition of done:** two players can complete an entire game on one device, alternating turns automatically; every illegal move is genuinely impossible to attempt (not just blocked with an error message after the fact) — this includes castling and en passant appearing as legal options only exactly when the rules allow them.
 
 ### [ ] 1.3 — End states & promotion UI
 - **Depends on:** 1.2
-- **Files:** `public/game.js`, `public/styles.css`
-- **Definition of done:** check is visually indicated; checkmate and stalemate both end the game with a clear on-screen message naming the result; when a pawn reaches the last rank, a piece-choice prompt appears and the game correctly continues with whichever piece (queen, rook, bishop, or knight) the player picks.
+- **Files:** `src/game.ts`, `src/components/Modal.tsx`, `src/App.tsx`
+- **Definition of done:** check is visually indicated; checkmate and stalemate both end the game with a clear on-screen message naming the result; when a pawn reaches the last rank, a piece-choice prompt (styled consistently with the rest of the jungle theme) appears and the game correctly continues with whichever piece (queen, rook, bishop, or knight) the player picks.
 
 ### [ ] 1.4 — Deploy to Cloudflare Workers
 - **Depends on:** 1.3
 - **Files:** `wrangler.jsonc` (deploy config only — no logic changes)
-- **Definition of done:** the site is live at a public `*.workers.dev` URL on the Cloudflare Free plan, and hot-seat mode works there exactly as it does locally.
+- **Definition of done:** `npm run build` followed by `wrangler deploy` publishes the site to a public `*.workers.dev` URL on the Cloudflare Free plan, and hot-seat mode works there exactly as it does locally.
 
 ### [ ] 1.5 — Live smoke test
 - **Depends on:** 1.4
@@ -60,23 +64,23 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ### [ ] 2.1 — Position evaluation
 - **Depends on:** 1.5
-- **Files:** `public/ai.js`
+- **Files:** `ai.js`
 - **Definition of done:** given any board position, `ai.js` returns a numeric score reflecting material balance (and basic positional factors) from the perspective of the side to move, using only data/functions already exposed by `rules.js`.
 
 ### [ ] 2.2 — Minimax with alpha-beta pruning, depth 2
 - **Depends on:** 2.1
-- **Files:** `public/ai.js`
+- **Files:** `ai.js`
 - **Definition of done:** given any legal position, the AI returns a single legal move chosen by minimax search with alpha-beta pruning at search depth 2 (two half-moves deep), calling `rules.js` for legal-move generation rather than reimplementing any chess logic.
 
 ### [ ] 2.3 — Speed guard (2-second budget)
 - **Depends on:** 2.2
-- **Files:** `public/ai.js`
+- **Files:** `ai.js`
 - **Definition of done:** across a range of test positions (including unusually "open" ones with many legal moves), the AI always returns a move within 2 seconds; if any position is found that risks exceeding that, a fallback (e.g., narrowing the search for that move only) keeps it under budget without ever returning an illegal or missing move.
 
 ### [ ] 2.4 — Color choice & game wiring
 - **Depends on:** 2.3
-- **Files:** `public/game.js`, `public/styles.css`
-- **Definition of done:** before a Vs Computer game starts, the player picks White or Black; the computer automatically plays the other side and responds after every human move using 2.2/2.3's logic; all of Phase 1's end-state handling (check, checkmate, stalemate, promotion) works identically in this mode.
+- **Files:** `src/components/ColorPicker.tsx`, `src/App.tsx`
+- **Definition of done:** before a Vs Computer game starts, the player picks White or Black in a screen styled to match the Figma Make design system (§4); the computer automatically plays the other side and responds after every human move using 2.2/2.3's logic; all of Phase 1's end-state handling (check, checkmate, stalemate, promotion) works identically in this mode.
 
 ### [ ] 2.5 — Deploy & verify
 - **Depends on:** 2.4
@@ -89,38 +93,38 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ### [ ] 3.1 — Durable Object room class
 - **Depends on:** 2.5
-- **Files:** `src/room.js` (or equivalent Durable Object source), `wrangler.jsonc`
-- **Definition of done:** a `Room` Durable Object class exists, is SQLite-backed (`new_sqlite_classes` in `wrangler.jsonc`), and is reachable via `env.ROOM.getByName(roomCode)`; the class can store and return "the current game state" for its room.
+- **Files:** `worker/room.js`, `wrangler.jsonc`
+- **Definition of done:** a `Room` Durable Object class exists, is SQLite-backed (`new_sqlite_classes` in `wrangler.jsonc`), and is reachable via `env.ROOM.getByName(roomCode)`; the class can store and return "the current game state" for its room. `wrangler.jsonc` gains a `main` entry point for the first time (pointing at the Worker script that hosts this class) — everything before this task was static assets only.
 
 ### [ ] 3.2 — WebSocket routing
 - **Depends on:** 3.1
-- **Files:** `wrangler.jsonc`, `src/room.js`
+- **Files:** `wrangler.jsonc`, `worker/room.js`
 - **Definition of done:** `wrangler.jsonc` routes the WebSocket path through `run_worker_first` (so it always reaches the Worker instead of being treated as a missing static file); the Durable Object accepts incoming connections via `ctx.acceptWebSocket()` — no Socket.IO, Express, or `ws` package anywhere in the project.
 
 ### [ ] 3.3 — Player identity & seat assignment
 - **Depends on:** 3.2
-- **Files:** `src/room.js`
+- **Files:** `worker/room.js`
 - **Definition of done:** the first connection to a room is assigned White, the second is assigned Black, and any further connections are spectators; each connection's role is stored on the connection itself via `ws.serializeAttachment()`, and a spectator's move attempts are rejected server-side (not just hidden client-side).
 
 ### [ ] 3.4 — Move protocol & server-side legality
 - **Depends on:** 3.3
-- **Files:** `src/room.js`
-- **Definition of done:** every message sent over the socket, either direction, is JSON with a `type` and `payload`; when a player sends a move, the Durable Object validates it against `rules.js` (imported server-side) before accepting it, updates the authoritative position, and broadcasts the new state to every connection in that room — a client cannot make a move "happen" just by claiming it did.
+- **Files:** `worker/room.js`
+- **Definition of done:** every message sent over the socket, either direction, is JSON with a `type` and `payload`; when a player sends a move, the Durable Object validates it against `rules.js` (imported server-side, straight from the project root) before accepting it, updates the authoritative position, and broadcasts the new state to every connection in that room — a client cannot make a move "happen" just by claiming it did.
 
 ### [ ] 3.5 — Save after every move (no timers)
 - **Depends on:** 3.4
-- **Files:** `src/room.js`
+- **Files:** `worker/room.js`
 - **Definition of done:** the position is written to the Durable Object's SQLite storage synchronously immediately after every accepted move — nothing in the project runs on an interval or a timer; killing the Durable Object process immediately after a move and reconnecting shows that move as saved.
 
 ### [ ] 3.6 — Reconnect & New Game
 - **Depends on:** 3.5
-- **Files:** `src/room.js`, `public/online.js`
+- **Files:** `worker/room.js`, `src/components/Online.tsx`
 - **Definition of done:** refreshing the page (or reopening the tab) and re-entering the same room code reconnects to the same game in the same seat with the current position intact; a "New game" action resets the board to the starting position for both players' views at once.
 
 ### [ ] 3.7 — Online mode UI
 - **Depends on:** 3.6
-- **Files:** `public/online.js`, `public/styles.css`, `public/index.html`
-- **Definition of done:** a room-code entry screen (jungle-themed, per `ProductSpec.md` §4) lets a player type or share a code; a "waiting for opponent" state shows while only one seat is filled; once both seats are filled, moves made on either device appear on the other device without a manual refresh.
+- **Files:** `src/components/Online.tsx`, `src/App.tsx`
+- **Definition of done:** a room-code entry screen (styled per `ProductSpec.md` §4) lets a player type or share a code; a "waiting for opponent" state shows while only one seat is filled; once both seats are filled, moves made on either device appear on the other device without a manual refresh.
 
 ### [ ] 3.8 — Deploy & two-device smoke test
 - **Depends on:** 3.7
@@ -133,13 +137,13 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ### [ ] 4.1 — Track captures
 - **Depends on:** 3.8
-- **Files:** `rules.js` (or a thin wrapper that observes it), `public/game.js`
+- **Files:** `rules.js` (or a thin wrapper that observes it), `src/game.ts`
 - **Definition of done:** for any in-progress game (any mode), the list of pieces each side has captured so far, plus the resulting material-point difference (pawn=1, knight/bishop=3, rook=5, queen=9), can be read out at any time and stays correct through castling, en passant, and promotion.
 
 ### [ ] 4.2 — Captured-pieces UI
 - **Depends on:** 4.1
-- **Files:** `public/styles.css`, `public/game.js`, `public/index.html`
-- **Definition of done:** each side's captured pieces are displayed next to the board (jungle-themed, consistent with the rest of the UI) alongside a material-difference indicator (e.g., "+3"), updating live, present in all three modes.
+- **Files:** `src/components/CapturedPieces.tsx`, `src/App.tsx`
+- **Definition of done:** each side's captured pieces are displayed next to the board (styled per §4, consistent with the rest of the UI) alongside a material-difference indicator (e.g., "+3"), updating live, present in all three modes.
 
 ### [ ] 4.3 — Final deploy
 - **Depends on:** 4.2

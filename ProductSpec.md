@@ -23,6 +23,11 @@ A browser-based chess game, playable three ways (two people on one screen, one p
 - **Search depth** — how many moves ahead the computer imagines. "Depth 2" means it thinks through its move and your reply (two "half-moves," called *plies* in chess terminology) before deciding.
 - **Castling, en passant, promotion** — three special chess moves every legal engine must handle: castling (king and rook swap positions in one move, under specific conditions), en passant (a special pawn capture that's only legal the move immediately after the opponent's pawn advances two squares past it), and promotion (a pawn that reaches the far end of the board becomes a piece of the player's choosing — usually a queen, but not always).
 - **FEN-like state** — chess programs typically describe "the current position" as one compact piece of data (whose turn it is, where every piece sits, castling rights, etc.) rather than a full history. We'll keep something in that spirit so the server only needs to store "the position right now," not a transcript.
+- **React** — a JavaScript library for building UIs out of small, reusable pieces called *components* (a "Board" component, a "Square" component, and so on), each describing what should appear on screen for a given piece of data. We use it for the front-end of this project (see §5.4).
+- **Vite** (pronounced "veet") — the build tool that takes our React/TypeScript source files and bundles them into the plain HTML/CSS/JS files a browser actually runs, plus a fast local dev server for previewing changes as you make them.
+- **Tailwind CSS** — a CSS approach where you style things by combining small, pre-named utility classes directly in your markup (e.g. `bg-green-900`) instead of writing separate stylesheets rule-by-rule. We use Tailwind CSS v4.
+- **TypeScript / JSX / `.tsx`** — TypeScript is JavaScript with an added layer that catches a category of bugs (like passing the wrong type of value somewhere) before the code ever runs. JSX is the HTML-like syntax React components are written in; a `.tsx` file is a TypeScript file that contains JSX.
+- **Figma Make** — a Figma product that generates a working React/Vite/Tailwind app from a written description. We used it to generate the initial jungle-themed board visual (see §5.5); it's a separate product from ordinary Figma design files.
 
 ## 3. The three modes
 
@@ -52,17 +57,41 @@ There are deliberately no clocks and no timers of any kind in this mode (see Sec
 
 ## 4. The look: jungle & explorer theme
 
-We do not currently have a linked Figma file with mockups for this project, so this section describes the design *direction* in words; it should be treated as the working design brief until (or unless) an actual Figma file is connected, at which point we'll re-read it and reconcile any differences here.
+This section used to describe the theme only in words, with no Figma file to point to. That's changed: we generated a real screen with Figma Make (Figma's AI app-builder) at the URL below, and its output is now our actual design system — the exact colors, fonts, and motifs every other screen should match, not just a mood description.
 
-The visual identity is a jungle/explorer world in the spirit of Tarzan: think dense green foliage, hand-carved wood textures, vines as decorative borders or dividers, a warm and earthy (rather than sterile, corporate) color palette, and typography that reads as "adventure" without sacrificing legibility. The chessboard itself should read clearly as a chessboard first (players need to instantly parse which squares are light/dark and where every piece is) — the jungle theme should live in the frame around the board, the piece iconography/silhouettes, buttons, and background, not in anything that would make it harder to tell a bishop from a pawn at a glance. Concretely, this shows up as: a wood-and-vine bordered board frame; piece designs that read as explorer/jungle-flavored silhouettes (still unambiguous as standard chess pieces — a king still reads as a king) rather than a generic tournament set; buttons and panels styled like carved wood or bamboo; a background that suggests jungle canopy or ruins without competing with the board for attention.
+- **Source:** [Jungle-Theme-Chess-Background](https://www.figma.com/make/0re1s60xkWPN11Ezwek4RX/Jungle-Theme-Chess-Background), a single generated screen: the chessboard itself, fully styled, with jungle-canopy background art, animated foliage, and light/piece-selection interaction (no real chess logic — that's expected, and gets wired in during Phase 1).
 
-This section will be updated with exact colors, fonts, and asset references once Figma access is available; until then, each UI-building task in the roadmap should implement "the jungle/explorer look" per this description and can be revisited for a pixel-level pass later without blocking functional progress.
+**Color tokens** (defined as CSS custom properties, so every component references the same names instead of repeating raw hex values):
+
+| Token | Value | Use |
+|---|---|---|
+| `--color-jungle-deep` | `#0d1f0e` | darkest background |
+| `--color-jungle-dark` | `#1a3a1c` | background gradient |
+| `--color-jungle-mid` | `#2d5a31` | mid-tone green accents |
+| `--color-jungle-light` | `#4a8c50` | lighter green accents |
+| `--color-jungle-fog` | `#6db375` | ground-mist / fog effects |
+| `--color-stone-dark` | `#2c2416` | dark wood/stone |
+| `--color-stone-mid` | `#4a3c28` | mid wood/stone |
+| `--color-stone-light` | `#7a6548` | light wood/stone |
+| `--color-stone-pale` | `#c4a96e` | pale stone, light-square base |
+| `--color-moss-dark` | `#1e3320` | dark-square base |
+| `--color-moss-light` | `#3d6b42` | moss highlight |
+| `--color-gold` | `#c9a227` | primary accent (borders, labels, titles) |
+| `--color-gold-bright` | `#f0c040` | selected/highlighted state |
+
+**Fonts:** `Cinzel` (serif, used uppercase with wide letter-spacing) for titles and headings; `Lora` (serif, italic for status text) for body copy — both loaded from Google Fonts. Together they read as "carved stone marker" (Cinzel) and "explorer's journal" (Lora) rather than a generic sans-serif UI.
+
+**Decorative motifs**, built as small reusable components rather than static images: a `Leaf` shape, a `FernLeaf` (multiple fronds off a central stem), and a `VineDecor` (a wavering vine with leaf clusters) — each an inline SVG, tinted with the color tokens above, gently animated (`sway`, `sway-slow`) via CSS keyframes, layered around the edges of the screen so they frame content without covering it. A soft "ground mist" gradient and a handful of firefly-like particles finish the atmosphere.
+
+**The board itself:** an 8x8 grid in a carved-wood frame (gold-bordered), rank (1–8) and file (a–h) labels in small gold text, light squares as a pale-stone gradient with a subtle wood-grain texture, dark squares as a dark-moss gradient with a mottled texture, and pieces rendered as the standard Unicode chess glyphs (♔♕♖♗♘♙ / ♚♛♜♝♞♟) rather than custom artwork — which keeps every piece instantly legible (per the "board must read as a board first" principle) while still picking up the theme's color and shadow treatment. Selecting a piece brightens its square to gold/bright-green and gives it a small floating animation.
+
+**What Figma Make generated vs. what we build by hand:** Figma Make produced one screen (the board, as a visual demo with no real game state). It did not generate the mode-select landing screen, the promotion piece-picker, the Vs Computer color-choice screen, the online room-code screen, or the captured-pieces strip — those get built by hand in Phases 1–4, using the same color tokens, fonts, and decorative components established here, so the whole app reads as one consistent design system even though only its first screen came from Figma Make.
 
 ## 5. Architecture
 
 ### 5.1 Hosting
 
-The whole site is one Cloudflare Workers project on the **Free plan**. Static assets (`index.html`, CSS, client-side JavaScript, images) are served via Cloudflare's built-in "assets" feature, configured in `wrangler.jsonc`. Two settings matter there:
+The whole site is one Cloudflare Workers project on the **Free plan**. Static assets — now the output of a Vite build (see §5.4) rather than hand-written files directly — are served via Cloudflare's built-in "assets" feature, configured in `wrangler.jsonc`, pointed at the build output folder (`dist/`). Two settings matter there:
 
 - `not_found_handling: "single-page-application"` — if someone requests a URL path that isn't a real file (for example, a room-code URL like `/room/ABCD`), Cloudflare serves `index.html` anyway instead of a 404 error page, and our own JavaScript figures out what to show based on the URL. This is what lets "share a link" or "type a room code" work without us building a real multi-page server.
 - `run_worker_first` (scoped to the WebSocket path only) — normally, if a request matches a static file, Cloudflare serves that file and never runs our own server code at all, which is faster and cheaper. WebSocket connections for online games aren't a static file, though — they need our actual server code (the Durable Object) to run, so we explicitly tell Cloudflare "for this one path, always run my Worker code first, don't just look for a matching static file."
@@ -83,7 +112,15 @@ This matters for two reasons a business student will recognize even without read
 
 Runs entirely client-side (in the player's own browser), in its own module, using minimax search with alpha-beta pruning at depth 2 (see Glossary for what both of those mean). It calls into `rules.js` to know which moves are legal — it never reimplements chess rules itself, only move *selection*. We'll build in a safety margin so it reliably answers within the 2-second budget even in unusually "busy" positions (many legal moves to consider); if a rare position would blow that budget, the fallback is to cut the search shallower for that one move rather than let the player wait.
 
-### 5.4 Online multiplayer
+### 5.4 The front-end: React, generated first by Figma Make
+
+Originally this project was planned as plain HTML/CSS/JavaScript with no framework. That changed on purpose after evaluating Figma Make (see §4): the front-end is now **React 19 + TypeScript + Tailwind CSS v4, built with Vite 8** — the exact stack Figma Make itself generates, so the AI-designed screen and every hand-built screen after it share one toolchain instead of us maintaining a translation layer between "what Figma Make made" and "what the app runs."
+
+This is a UI-layer decision only, and it doesn't loosen any of the other constraints: `rules.js`, the AI module, and the Durable Object server logic (§5.2, §5.3, §5.5) are still plain, framework-agnostic JavaScript with no outside libraries — React components *import and call* those modules, the same as any other JavaScript would, rather than those modules being rewritten in a React-specific way. The "one shared rules engine, proven by a perft test" principle is unaffected by which UI framework sits on top of it.
+
+Practically, this means: components live under `src/` as `.tsx` files (a `Board` component, a `Square` component, a `Modal` component, etc. — see §4 for the generated starting point); Tailwind utility classes plus the color/font tokens from §4 handle styling instead of a separate stylesheet; `vite build` compiles everything down to plain static HTML/CSS/JS in `dist/`, which is what Cloudflare Workers actually serves — so hosting, the free plan, and the "static assets, no server code until Phase 3" architecture in §5.1 are all unchanged. Only the *source* of those static files changed, not how they're hosted.
+
+### 5.5 Online multiplayer
 
 **One Durable Object per room.** When two players want to play online, they're really both connecting to the same Durable Object instance — a private, persistent slice of server memory — identified by the room code they both typed in. We get that instance with `env.ROOM.getByName(roomCode)`, which either creates a fresh one (first player to use that code) or hands back the existing one (second player, or a reconnect). The Durable Object is SQLite-backed (`new_sqlite_classes` in the config) so the current position survives the Durable Object being put to sleep between moves, which Cloudflare does automatically when nothing's happening, to save resources.
 
@@ -107,7 +144,8 @@ These are deliberate exclusions, not oversights — each one would add real comp
 - **Draw by repetition or the fifty-move rule** — two lesser-known official chess draw conditions (a position repeating three times, or fifty moves passing with no pawn move or capture) that we are intentionally not detecting. Games can still end in checkmate or stalemate; these two specific draw types are just not implemented.
 - **Opening books** — a database of known strong opening move sequences that many chess engines consult early in the game. Our computer opponent calculates every move fresh via search instead.
 - **Move export** — no PGN (the standard chess move-notation file format) download, no copy-to-clipboard move list.
-- **React** (or any other frontend framework) — plain HTML, CSS, and JavaScript only, per the technical constraints for this project.
+
+React was originally on this list too — the project started as plain HTML/CSS/JavaScript only. That changed on purpose once we evaluated Figma Make (see §4, §5.4): it's now the front-end framework, in exchange for a design system generated to match, at the cost of shipping more code that wasn't written from scratch. `rules.js`, the AI, and the Durable Object logic remain library-free either way.
 
 ## 7. Optional extra (built last): captured pieces + material count
 
@@ -115,4 +153,4 @@ Once all three modes work end-to-end, the one additional feature we'll add is a 
 
 ## 8. What "done" means, overall
 
-Full legal chess in every mode, with every illegal move genuinely impossible to make (not just discouraged) — all six piece types, check, checkmate, stalemate, castling, en passant, and promotion with a choice of piece. The computer opponent always answers within two seconds with a legal move. Online play correctly assigns colors by join order, keeps the server as the single authority on the position, survives refreshes, and lets either player start a new game for both. The whole thing is styled in the jungle/explorer theme, runs on Cloudflare Workers' free plan, and has no code outside `rules.js`, the UI, the AI module, and the Durable Object server logic — no chess library, no React, no real-time-networking library, no timers.
+Full legal chess in every mode, with every illegal move genuinely impossible to make (not just discouraged) — all six piece types, check, checkmate, stalemate, castling, en passant, and promotion with a choice of piece. The computer opponent always answers within two seconds with a legal move. Online play correctly assigns colors by join order, keeps the server as the single authority on the position, survives refreshes, and lets either player start a new game for both. The whole thing is styled in the jungle/explorer theme (now a real design system pulled from Figma Make, per §4), runs on Cloudflare Workers' free plan, and has no code outside `rules.js`, the React UI, the AI module, and the Durable Object server logic — no chess library, no real-time-networking library, no timers. React is the one library in the stack, adopted deliberately for the UI layer only; everything that decides game state (`rules.js`, the AI, the online server logic) remains hand-written with no outside dependencies.
