@@ -19,15 +19,17 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 - **Note:** this project's front-end is React 19 + TypeScript + Tailwind CSS v4 via Vite 8, generated first by Figma Make (see `ProductSpec.md` §4–§5.4) — a deliberate change from the original plain-HTML plan. `rules.js` and the Durable Object logic are unaffected: still hand-written, framework-free JavaScript.
 - **Status: DONE.** `npm install` succeeded, `npm run deploy:cf` (`vite build && wrangler deploy`) built and published it — live at **https://chess-plode.aydink.workers.dev** on 2026-09-15. Shows the Figma Make jungle chessboard; no real moves yet (that's 1.1).
 
-### [ ] 0.2 — Rules engine: move generation
+### [x] 0.2 — Rules engine: move generation
 - **Depends on:** 0.1
 - **Files:** `rules.js`
 - **Definition of done:** `rules.js` can, for any position, list every legal move for the side to move, for all six piece types, correctly handling check (you may not make a move that leaves your own king in check), castling rights, en passant eligibility, and promotion. No other file in the project is allowed to independently decide whether a move is legal — everything else calls into this file.
+- **Status: DONE.** `rules.js` written from scratch (no chess library) covering all six piece types, check/checkmate/stalemate detection, castling (including "can't castle through/out of check"), en passant, and promotion (as 4 distinct moves per pawn reaching the last rank). Verified correct by the perft test in 0.3.
 
-### [ ] 0.3 — Rules engine: perft test
+### [x] 0.3 — Rules engine: perft test
 - **Depends on:** 0.2
 - **Files:** `rules.test.js` (or equivalent test/perft script)
 - **Definition of done:** running the perft test from the standard starting position reports exactly 20 legal move sequences at depth 1, 400 at depth 2, and 8,902 at depth 3. **This must pass before any task in Phase 1 or later begins.** If the numbers don't match, this task isn't done — fix `rules.js`, don't move on.
+- **Status: DONE.** `node rules.test.js` (also runnable as `npm test`) reports perft(1)=20, perft(2)=400, perft(3)=8902 — exact match on all three, confirmed 2026-09-15. The rules engine is verified correct; Phase 1 can begin.
 
 ---
 
