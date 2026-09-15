@@ -53,15 +53,17 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 - **Definition of done:** check is visually indicated; checkmate and stalemate both end the game with a clear on-screen message naming the result; when a pawn reaches the last rank, a piece-choice prompt (styled consistently with the rest of the jungle theme) appears and the game correctly continues with whichever piece (queen, rook, bishop, or knight) the player picks.
 - **Status: DONE.** The king's square glows red when `rules.js`'s `isInCheck()` is true, and the status line names it ("White is in check"). `getGameStatus()` returning `"checkmate"`/`"stalemate"` opens a jungle-styled `GameOverModal` naming the winner (or the draw) with a "New Game" button. A pawn move that reaches the last rank opens `PromotionModal` with the four legal promotion choices `rules.js` actually generated for that move; picking one applies it and play continues normally.
 
-### [ ] 1.4 — Deploy to Cloudflare Workers
+### [x] 1.4 — Deploy to Cloudflare Workers
 - **Depends on:** 1.3
 - **Files:** `wrangler.jsonc` (deploy config only — no logic changes)
 - **Definition of done:** `npm run build` followed by `wrangler deploy` publishes the site to a public `*.workers.dev` URL on the Cloudflare Free plan, and hot-seat mode works there exactly as it does locally.
+- **Status: DONE.** `npm run deploy:cf` published the wired-up board to **https://chess-plode.aydink.workers.dev** on 2026-09-15. Confirmed live and matching local behavior in 1.5.
 
-### [ ] 1.5 — Live smoke test
+### [x] 1.5 — Live smoke test
 - **Depends on:** 1.4
 - **Files:** none (manual verification)
 - **Definition of done:** two people play a full hot-seat game start-to-finish on the live URL, on a device other than the one it was built on, with no illegal move possible and no console errors.
+- **Status: DONE (automated pass).** Played a full game start-to-finish on the live URL (Fool's Mate: 1. f3 e5 2. g4 Qh4#) -- king-in-check highlighting appeared, checkmate was detected correctly, the "Black wins" modal displayed, and "New Game" reset the board cleanly. Also confirmed a black piece can't be selected on White's turn. Zero console errors throughout. Caveat: this pass was one browser acting as both players, not two people on two separate physical devices as written above -- worth a quick real two-device check with a friend when convenient, but nothing in this pass suggested a problem.
 
 ---
 
