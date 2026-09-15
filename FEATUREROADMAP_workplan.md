@@ -35,20 +35,23 @@ When you tell me which task to start on, I'll create a branch for it, do the wor
 
 ## Phase 1 — Hot-Seat, live on the internet
 
-### [ ] 1.1 — Board & piece rendering (adapt the Figma Make board)
+### [x] 1.1 — Board & piece rendering (adapt the Figma Make board)
 - **Depends on:** 0.3
 - **Files:** `src/App.tsx`, `src/components/Board.tsx`, `src/components/Square.tsx`, `src/index.css`
 - **Definition of done:** the Figma Make-generated board (currently a self-contained visual demo with its own fake `selected`/`hovered` state) is split into real `Board`/`Square` components and wired to actual board data instead of the hardcoded starting position; clicking/tapping a piece highlights its legal destination squares (from `rules.js`), and clicking a highlighted square moves the piece there. Visual style (colors, fonts, decorative foliage) carries over unchanged from the Figma Make source per `ProductSpec.md` §4.
+- **Status: DONE.** Split into `src/components/Board.tsx` (frame, rank/file labels, the 8x8 grid) and `src/components/Square.tsx` (one square's background, texture, and piece glyph). Both are wired to real state via `src/game.ts` — no more hardcoded starting position or fake selection.
 
-### [ ] 1.2 — Turn-taking & full move legality
+### [x] 1.2 — Turn-taking & full move legality
 - **Depends on:** 1.1
 - **Files:** `src/App.tsx`, `src/game.ts`
 - **Definition of done:** two players can complete an entire game on one device, alternating turns automatically; every illegal move is genuinely impossible to attempt (not just blocked with an error message after the fact) — this includes castling and en passant appearing as legal options only exactly when the rules allow them.
+- **Status: DONE.** `src/game.ts`'s `useChessGame()` hook is the only place the UI touches game state; it asks `rules.js`'s `getLegalMoves()` for every legal destination of the selected piece and only those squares are clickable/highlighted — an illegal square is never a valid click target, not just one that shows an error. Turn alternates automatically after every move (`makeMove()`'s returned position flips `turn`). Castling and en passant appear exactly when `rules.js` says they're legal, since nothing else decides that.
 
-### [ ] 1.3 — End states & promotion UI
+### [x] 1.3 — End states & promotion UI
 - **Depends on:** 1.2
 - **Files:** `src/game.ts`, `src/components/Modal.tsx`, `src/App.tsx`
 - **Definition of done:** check is visually indicated; checkmate and stalemate both end the game with a clear on-screen message naming the result; when a pawn reaches the last rank, a piece-choice prompt (styled consistently with the rest of the jungle theme) appears and the game correctly continues with whichever piece (queen, rook, bishop, or knight) the player picks.
+- **Status: DONE.** The king's square glows red when `rules.js`'s `isInCheck()` is true, and the status line names it ("White is in check"). `getGameStatus()` returning `"checkmate"`/`"stalemate"` opens a jungle-styled `GameOverModal` naming the winner (or the draw) with a "New Game" button. A pawn move that reaches the last rank opens `PromotionModal` with the four legal promotion choices `rules.js` actually generated for that move; picking one applies it and play continues normally.
 
 ### [ ] 1.4 — Deploy to Cloudflare Workers
 - **Depends on:** 1.3

@@ -1,38 +1,10 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import type { CSSProperties } from "react";
+import Board from "./components/Board";
+import { PromotionModal, GameOverModal } from "./components/Modal";
+import { useChessGame, COLOR_NAMES } from "./game";
 
-const BOARD_SIZE = 8;
-
-type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
-type Color = "w" | "b";
-interface Piece {
-  type: PieceType;
-  color: Color;
-}
-
-const initialBoard: (Piece | null)[][] = (() => {
-  const b: (Piece | null)[][] = Array.from({ length: 8 }, () => Array(8).fill(null));
-  const backRow: PieceType[] = ["R", "N", "B", "Q", "K", "B", "N", "R"];
-  backRow.forEach((t, i) => {
-    b[0][i] = { type: t, color: "b" };
-    b[7][i] = { type: t, color: "w" };
-  });
-  for (let i = 0; i < 8; i++) {
-    b[1][i] = { type: "P", color: "b" };
-    b[6][i] = { type: "P", color: "w" };
-  }
-  return b;
-})();
-
-const pieceSymbols: Record<Color, Record<PieceType, string>> = {
-  w: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
-  b: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
-};
-
-const pieceNames: Record<PieceType, string> = {
-  K: "King", Q: "Queen", R: "Rook", B: "Bishop", N: "Knight", P: "Pawn",
-};
-
-function Leaf({ style, className }: { style?: React.CSSProperties; className?: string }) {
+function Leaf({ style, className }: { style?: CSSProperties; className?: string }) {
   return (
     <div className={`absolute pointer-events-none ${className}`} style={style}>
       <svg viewBox="0 0 80 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -55,7 +27,7 @@ function Leaf({ style, className }: { style?: React.CSSProperties; className?: s
   );
 }
 
-function FernLeaf({ style, className }: { style?: React.CSSProperties; className?: string }) {
+function FernLeaf({ style, className }: { style?: CSSProperties; className?: string }) {
   const fronds = Array.from({ length: 9 }, (_, i) => i);
   return (
     <div className={`absolute pointer-events-none ${className}`} style={style}>
@@ -81,7 +53,7 @@ function FernLeaf({ style, className }: { style?: React.CSSProperties; className
   );
 }
 
-function VineDecor({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function VineDecor({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <div className={`absolute pointer-events-none ${className}`} style={style}>
       <svg viewBox="0 0 40 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -101,25 +73,18 @@ function VineDecor({ className, style }: { className?: string; style?: React.CSS
 }
 
 export default function App() {
-  const [board] = useState<(Piece | null)[][]>(initialBoard);
-  const [selected, setSelected] = useState<[number, number] | null>(null);
-  const [hovered, setHovered] = useState<[number, number] | null>(null);
+  const game = useChessGame();
 
-  const handleSquare = (row: number, col: number) => {
-    if (selected && selected[0] === row && selected[1] === col) {
-      setSelected(null);
-    } else if (board[row][col]) {
-      setSelected([row, col]);
-    } else {
-      setSelected(null);
-    }
-  };
+  const winner = game.status === "checkmate" ? (game.turn === "w" ? "b" : "w") : null;
 
-  const isLight = (r: number, c: number) => (r + c) % 2 === 0;
-  const isSelected = (r: number, c: number) => selected?.[0] === r && selected?.[1] === c;
-  const isHovered = (r: number, c: number) => hovered?.[0] === r && hovered?.[1] === c;
+  const statusText = useMemo(() => {
+    if (game.status === "checkmate" && winner) return `Checkmate — ${COLOR_NAMES[winner]} wins`;
+    if (game.status === "stalemate") return "Stalemate — draw";
+    if (game.inCheck) return `${COLOR_NAMES[game.turn]} is in check`;
+    return `${COLOR_NAMES[game.turn]} to move`;
+  }, [game.status, game.turn, game.inCheck, winner]);
 
-  const selectedPiece = selected ? board[selected[0]][selected[1]] : null;
+  const statusIsUrgent = game.inCheck || game.status !== "ongoing";
 
   return (
     <div className="relative w-screen h-screen overflow-hidden flex items-center justify-center"
@@ -203,114 +168,43 @@ export default function App() {
           </p>
         </div>
 
-        {/* Board frame */}
-        <div className="relative" style={{
-          padding: "14px",
-          background: "linear-gradient(135deg, #2c1f0a 0%, #4a3420 30%, #3a2a14 60%, #2c1f0a 100%)",
-          borderRadius: "4px",
-          boxShadow: "0 0 0 2px #c9a227, 0 0 0 4px #4a3420, 0 20px 60px rgba(0,0,0,0.8), 0 0 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,162,39,0.3)",
-        }}>
-          {/* Moss texture overlay on frame */}
-          <div className="absolute inset-0 rounded pointer-events-none" style={{
-            background: "radial-gradient(ellipse at 20% 30%, rgba(45,90,49,0.3) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(30,60,33,0.25) 0%, transparent 50%)",
-          }} />
-
-          {/* Rank labels */}
-          <div className="absolute left-2 top-[14px] flex flex-col" style={{ height: "calc(100% - 28px)" }}>
-            {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="flex-1 flex items-center justify-center text-xs"
-                style={{ color: "rgba(201,162,39,0.6)", fontFamily: "Cinzel, serif", fontSize: "9px" }}>
-                {8 - i}
-              </div>
-            ))}
-          </div>
-
-          {/* File labels */}
-          <div className="absolute bottom-2 left-[14px] flex flex-row" style={{ width: "calc(100% - 28px)" }}>
-            {["a", "b", "c", "d", "e", "f", "g", "h"].map((f) => (
-              <div key={f} className="flex-1 flex items-center justify-center text-xs"
-                style={{ color: "rgba(201,162,39,0.6)", fontFamily: "Cinzel, serif", fontSize: "9px" }}>
-                {f}
-              </div>
-            ))}
-          </div>
-
-          {/* Chess squares */}
-          <div className="grid" style={{ gridTemplateColumns: "repeat(8, 1fr)", gap: 0 }}>
-            {board.map((row, r) =>
-              row.map((piece, c) => {
-                const light = isLight(r, c);
-                const sel = isSelected(r, c);
-                const hov = isHovered(r, c);
-
-                const baseLight = "linear-gradient(135deg, #c4a96e 0%, #a8904f 50%, #c4a96e 100%)";
-                const baseDark = "linear-gradient(135deg, #2c2416 0%, #1e3320 50%, #2c2416 100%)";
-
-                return (
-                  <div
-                    key={`${r}-${c}`}
-                    onClick={() => handleSquare(r, c)}
-                    onMouseEnter={() => setHovered([r, c])}
-                    onMouseLeave={() => setHovered(null)}
-                    className="relative cursor-pointer transition-all duration-150"
-                    style={{
-                      width: "clamp(48px, 7vw, 72px)",
-                      height: "clamp(48px, 7vw, 72px)",
-                      background: sel
-                        ? light
-                          ? "linear-gradient(135deg, #e8c840 0%, #c9a227 100%)"
-                          : "linear-gradient(135deg, #4a8c50 0%, #2d6b35 100%)"
-                        : hov
-                          ? light
-                            ? "linear-gradient(135deg, #d4ba7e 0%, #bfa45f 100%)"
-                            : "linear-gradient(135deg, #3d6b42 0%, #2a5230 100%)"
-                          : light ? baseLight : baseDark,
-                      boxShadow: sel ? "inset 0 0 0 2px rgba(201,162,39,0.8)" : undefined,
-                    }}
-                  >
-                    {/* Mossy texture overlay on dark squares */}
-                    {!light && (
-                      <div className="absolute inset-0 opacity-30" style={{
-                        backgroundImage: "radial-gradient(circle at 30% 40%, rgba(77,140,80,0.4) 0%, transparent 40%), radial-gradient(circle at 70% 70%, rgba(45,90,49,0.3) 0%, transparent 35%)",
-                      }} />
-                    )}
-                    {/* Wood grain on light squares */}
-                    {light && (
-                      <div className="absolute inset-0 opacity-20" style={{
-                        backgroundImage: "repeating-linear-gradient(88deg, transparent 0px, transparent 3px, rgba(100,60,10,0.4) 3px, rgba(100,60,10,0.4) 4px)",
-                      }} />
-                    )}
-
-                    {piece && (
-                      <div className="absolute inset-0 flex items-center justify-center select-none"
-                        style={{ animation: sel ? "piece-float 2s ease-in-out infinite" : undefined }}>
-                        <span style={{
-                          fontSize: "clamp(22px, 3.5vw, 40px)",
-                          lineHeight: 1,
-                          color: piece.color === "w" ? "#f5efe0" : "#1a1008",
-                          textShadow: piece.color === "w"
-                            ? "0 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(255,240,180,0.3)"
-                            : "0 1px 2px rgba(0,0,0,0.9), 0 -1px 0 rgba(100,60,0,0.5)",
-                          filter: sel ? "drop-shadow(0 0 6px rgba(201,162,39,0.8))" : undefined,
-                        }}>
-                          {pieceSymbols[piece.color][piece.type]}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        <Board
+          board={game.position.board}
+          selected={game.selected}
+          legalDestinations={game.legalDestinations}
+          turn={game.turn}
+          inCheck={game.inCheck}
+          onSquareClick={game.selectSquare}
+        />
 
         {/* Status bar */}
-        <div className="text-center h-6">
-          {selectedPiece && selected && (
-            <p style={{ color: "rgba(201,162,39,0.8)", fontFamily: "Lora, serif", fontStyle: "italic", fontSize: "13px", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
-              {selectedPiece.color === "w" ? "White" : "Black"} {pieceNames[selectedPiece.type]} selected
-            </p>
-          )}
+        <div className="flex items-center gap-4 h-6">
+          <p style={{
+            color: statusIsUrgent ? "#e8734a" : "rgba(201,162,39,0.8)",
+            fontFamily: "Lora, serif",
+            fontStyle: "italic",
+            fontSize: "13px",
+            textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+          }}>
+            {statusText}
+          </p>
+          <button
+            onClick={game.resetGame}
+            className="cursor-pointer transition-transform hover:scale-105"
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(201,162,39,0.6)",
+              color: "rgba(201,162,39,0.9)",
+              borderRadius: "3px",
+              padding: "2px 10px",
+              fontFamily: "Cinzel, serif",
+              fontSize: "10px",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+            }}
+          >
+            New Game
+          </button>
         </div>
       </div>
 
@@ -344,6 +238,18 @@ export default function App() {
           }} />
         ))}
       </div>
+
+      {game.pendingPromotion && (
+        <PromotionModal
+          pending={game.pendingPromotion}
+          onChoose={game.choosePromotion}
+          onCancel={game.cancelPromotion}
+        />
+      )}
+
+      {game.status !== "ongoing" && (
+        <GameOverModal status={game.status} winner={winner} onNewGame={game.resetGame} />
+      )}
     </div>
   );
 }
